@@ -136,6 +136,35 @@ int main() {
         std::cout << "LU Decomposition failed\n\n";
     }
 
+    // Backslash operation example (A \ B)
+    std::cout << "Backslash operation (A \\ B) example:\n";
+    MatrixCls<3, 3, float> A;
+    A(0, 0) = 2.0f; A(0, 1) = 1.0f; A(0, 2) = 1.0f;
+    A(1, 0) = 4.0f; A(1, 1) = 3.0f; A(1, 2) = 3.0f;
+    A(2, 0) = 2.0f; A(2, 1) = 3.0f; A(2, 2) = 4.0f;
+
+    MatrixCls<3, 1, float> B;
+    B(0, 0) = 1.0f;
+    B(1, 0) = 2.0f;
+    B(2, 0) = 3.0f;
+
+    // Solve A * x = B
+    MatrixCls<3, 1, float> x;
+    if (backslash(A, B, x) == MatrixStatus::SUCCESS) {
+        std::cout << "Solution x to A*x = B:\n";
+        for (int i = 0; i < 3; ++i) {
+            std::cout << "x(" << i << ") = " << x(i, 0) << "\n";
+        }
+        
+        // Verify: A * x should equal B
+        auto verify = A * x;
+        std::cout << "\nVerification (A * x):\n";
+        for (int i = 0; i < 3; ++i) {
+            std::cout << "B(" << i << ") = " << verify(i, 0) << " (expected: " << B(i, 0) << ")\n";
+        }
+    }
+    std::cout << "\n";
+
     // Type aliases example
     Matrix3x3<float> mat3x3;
     mat3x3.identity();

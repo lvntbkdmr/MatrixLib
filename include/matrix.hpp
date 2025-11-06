@@ -950,9 +950,14 @@ MatrixStatus backslash(
     MatrixCls<ARows, ACols, ElementType> A_work;
     A.extractTopLeft(size, A_work);
     
-    // Extract top-left size×BCols from B
+    // Extract top-left size×BCols from B (manual extraction for non-square matrices)
     MatrixCls<BRows, BCols, ElementType> B_work;
-    B.extractTopLeft(size, B_work);
+    B_work.zero();
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j < BCols; ++j) {
+            B_work(i, j) = B(i, j);
+        }
+    }
     
     // Step 1: LU decomposition of top-left size×size portion
     MatrixCls<ARows, ACols, ElementType> L, U;

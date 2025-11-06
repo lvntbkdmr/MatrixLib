@@ -304,7 +304,84 @@ void test_lu_decomp() {
     MatrixCls<2, 2, float> L_sing, U_sing;
     ASSERT_EQ(singular.LuDecomp(L_sing, U_sing), MatrixStatus::SINGULAR_MATRIX);
     
+    // Test LU decomposition with size parameter
+    MatrixCls<6, 6, float> mat6x6;
+    mat6x6(0, 0) = 2.0f; mat6x6(0, 1) = 1.0f; mat6x6(0, 2) = 1.0f;
+    mat6x6(1, 0) = 4.0f; mat6x6(1, 1) = 3.0f; mat6x6(1, 2) = 3.0f;
+    mat6x6(2, 0) = 2.0f; mat6x6(2, 1) = 3.0f; mat6x6(2, 2) = 4.0f;
+    
+    MatrixCls<6, 6, float> L_size, U_size;
+    ASSERT_EQ(mat6x6.LuDecomp(3, L_size, U_size), MatrixStatus::SUCCESS);
+    
+    // Verify: L * U should equal original top-left 3x3
+    auto reconstructed_size = L_size * U_size;
+    ASSERT_NEAR(reconstructed_size(0, 0), mat6x6(0, 0), 0.001f);
+    ASSERT_NEAR(reconstructed_size(0, 1), mat6x6(0, 1), 0.001f);
+    ASSERT_NEAR(reconstructed_size(0, 2), mat6x6(0, 2), 0.001f);
+    ASSERT_NEAR(reconstructed_size(1, 0), mat6x6(1, 0), 0.001f);
+    ASSERT_NEAR(reconstructed_size(1, 1), mat6x6(1, 1), 0.001f);
+    ASSERT_NEAR(reconstructed_size(1, 2), mat6x6(1, 2), 0.001f);
+    ASSERT_NEAR(reconstructed_size(2, 0), mat6x6(2, 0), 0.001f);
+    ASSERT_NEAR(reconstructed_size(2, 1), mat6x6(2, 1), 0.001f);
+    ASSERT_NEAR(reconstructed_size(2, 2), mat6x6(2, 2), 0.001f);
+    
     std::cout << "  LU decomposition tests passed\n\n";
+}
+
+void test_backslash() {
+    std::cout << "Testing backslash operation...\n";
+    
+    // Test with a known system: A * x = B
+    MatrixCls<3, 3, float> A;
+    A(0, 0) = 2.0f; A(0, 1) = 1.0f; A(0, 2) = 1.0f;
+    A(1, 0) = 4.0f; A(1, 1) = 3.0f; A(1, 2) = 3.0f;
+    A(2, 0) = 2.0f; A(2, 1) = 3.0f; A(2, 2) = 4.0f;
+    
+    MatrixCls<3, 1, float> B;
+    B(0, 0) = 1.0f;
+    B(1, 0) = 2.0f;
+    B(2, 0) = 3.0f;
+    
+    MatrixCls<3, 1, float> x;
+    ASSERT_EQ(backslash(A, B, x), MatrixStatus::SUCCESS);
+    
+    // Verify: A * x should equal B
+    auto verify = A * x;
+    ASSERT_NEAR(verify(0, 0), B(0, 0), 0.001f);
+    ASSERT_NEAR(verify(1, 0), B(1, 0), 0.001f);
+    ASSERT_NEAR(verify(2, 0), B(2, 0), 0.001f);
+    
+    // Test backslash with size parameter
+    MatrixCls<6, 6, float> A_size, B_size;
+    A_size(0, 0) = 2.0f; A_size(0, 1) = 1.0f; A_size(0, 2) = 1.0f;
+    A_size(1, 0) = 4.0f; A_size(1, 1) = 3.0f; A_size(1, 2) = 3.0f;
+    A_size(2, 0) = 2.0f; A_size(2, 1) = 3.0f; A_size(2, 2) = 4.0f;
+    
+    B_size(0, 0) = 1.0f;
+    B_size(1, 0) = 2.0f;
+    B_size(2, 0) = 3.0f;
+    
+    MatrixCls<6, 1, float> x_size;
+    ASSERT_EQ(backslash(A_size, B_size, 3, x_size), MatrixStatus::SUCCESS);
+    
+    // Verify: A * x should equal B (only top-left 3x3 portion)
+    auto verify_size = A_size * x_size;
+    ASSERT_NEAR(verify_size(0, 0), B_size(0, 0), 0.001f);
+    ASSERT_NEAR(verify_size(1, 0), B_size(1, 0), 0.001f);
+    ASSERT_NEAR(verify_size(2, 0), B_size(2, 0), 0.001f);
+    
+    // Test singular matrix (should fail)
+    MatrixCls<2, 2, float> A_sing;
+    A_sing(0, 0) = 1.0f; A_sing(0, 1) = 2.0f;
+    A_sing(1, 0) = 2.0f; A_sing(1, 1) = 4.0f;  // det = 0
+    
+    MatrixCls<2, 1, float> B_sing, x_sing;
+    B_sing(0, 0) = 1.0f;
+    B_sing(1, 0) = 2.0f;
+    
+    ASSERT_EQ(backslash(A_sing, B_sing, x_sing), MatrixStatus::SINGULAR_MATRIX);
+    
+    std::cout << "  Backslash operation tests passed\n\n";
 }
 
 void test_comparison() {
@@ -353,6 +430,7 @@ int main() {
     test_determinant();
     test_inverse();
     test_lu_decomp();
+    test_backslash();
     test_comparison();
     test_type_aliases();
     

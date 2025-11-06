@@ -138,6 +138,44 @@ int main() {
         }
     }
 
+    // Example: Backslash operation with runtime size
+    std::cout << "Backslash operation with runtime size (x=" << x << "):\n";
+    MatrixCls<6, 6, float> A;
+    
+    // Fill A with some values
+    for (int i = 0; i < 6; ++i) {
+        for (int j = 0; j < 6; ++j) {
+            A(i, j) = static_cast<float>((i == j) ? (i + 1) * 2 : (i + j) * 0.5f);
+        }
+    }
+    
+    // Create B as a vector
+    MatrixCls<6, 1, float> B;
+    for (int i = 0; i < 6; ++i) {
+        B(i, 0) = static_cast<float>(i + 1);
+    }
+    
+    // Solve: A * result = B (only using top-left x×x portion of A, top-left x×1 of B)
+    // Note: backslash() automatically extracts the submatrices internally, so no need
+    // to call extractTopLeft() beforehand!
+    MatrixCls<6, 1, float> result;
+    if (backslash(A, B, x, result) == MatrixStatus::SUCCESS) {
+        std::cout << "Solution (top-left " << x << "x" << x << " portion):\n";
+        for (int i = 0; i < x; ++i) {
+            std::cout << "result(" << i << ") = " << result(i, 0) << "\n";
+        }
+        
+        // Verify: A * result should equal B (only top-left x×x portion)
+        auto verify = A * result;
+        std::cout << "\nVerification (A * result, top-left " << x << " elements):\n";
+        for (int i = 0; i < x; ++i) {
+            std::cout << "B(" << i << ") = " << verify(i, 0) << " (expected: " << B(i, 0) << ")\n";
+        }
+    } else {
+        std::cout << "Backslash operation failed\n";
+    }
+    std::cout << "\n";
+
     std::cout << "\n=== Example Complete ===\n";
     return 0;
 }
