@@ -15,7 +15,7 @@
  * the matrix library into your application code.
  */
 
-#include "MatrixPkg.h"
+#include "matrixlib/MatrixPkg.h"
 #include <iostream>
 #include <iomanip>
 #include <cmath>

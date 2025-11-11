@@ -19,15 +19,15 @@
 #ifndef MATRIX_PKG_H
 #define MATRIX_PKG_H
 
-#include "CommonTypes.h"
+#include "matrixlib/CommonTypes.h"
 
 // Forward declarations to resolve circular dependencies
 template <UINT32 RowNum, UINT32 ColNum, class ElementType> class MatrixCls;
 template <UINT32 RowNum, UINT32 ColNum, class ElementType> class SubMatPtrCls;
 
 // Include class definitions in dependency order
-#include "MatrixCls.h"
-#include "SubMatPtrCls.h"
-#include "VectorCls.h"
+#include "matrixlib/MatrixCls.h"
+#include "matrixlib/SubMatPtrCls.h"
+#include "matrixlib/VectorCls.h"
 
 #endif
