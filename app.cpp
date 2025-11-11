@@ -1,26 +1,61 @@
+/**
+ * @file app.cpp
+ * @brief Test application for the Matrix Library LeftDivide functionality
+ * 
+ * This application tests the LeftDivide method (solving Ax = b) for various
+ * matrix sizes and types. It verifies the correctness of the solution by
+ * computing the residual ||Ax - b||.
+ * 
+ * The tests include:
+ * - Small matrices (2x2, 3x3, 4x4) with known solutions
+ * - Larger matrices (5x5, 6x6) with tridiagonal structure
+ * - Verification using residual computation
+ * 
+ * @note This is a test/demo application. For production use, integrate
+ * the matrix library into your application code.
+ */
+
 #include "MatrixPkg.h"
 #include <iostream>
 #include <iomanip>
 #include <cmath>
 
-// Test function for a given size
+/**
+ * @brief Test LeftDivide function for a specific matrix size
+ * @param size Matrix size (size x size)
+ * @param testName Name of the test for output purposes
+ * @return true if test passed (residual < 1e-10), false otherwise
+ * 
+ * This function:
+ * 1. Creates a test matrix A and vector b
+ * 2. Solves Ax = b using LeftDivide
+ * 3. Computes the residual ||Ax - b||
+ * 4. Verifies the solution is correct
+ * 
+ * For small matrices (size <= 4), it also compares against expected solutions.
+ */
 bool testLeftDivide(UINT32 size, const char* testName)
 {
-    const UINT32 MAX_N = 6;
+    const UINT32 MAX_N = 6;  // Maximum matrix size for stack allocation
     
-    // Create matrices and vectors
+    // Create matrices and vectors with maximum size MAX_N
+    // The actual problem size will be 'size' (set via setSubMatrixSize)
     MatrixCls<MAX_N, MAX_N, REAL64> A;
     VectorCls<MAX_N, REAL64> b;
     VectorCls<MAX_N, REAL64> x;
-    VectorCls<MAX_N, REAL64> x_expected;
+    VectorCls<MAX_N, REAL64> x_expected;  // Expected solution (for verification)
 
-    // Set submatrix size
+    // Set the runtime dimensions to the test size
+    // This allows using only a portion of the allocated matrix
     A.setSubMatrixSize(size, size);
 
-    // Test Case: Well-conditioned matrix with known solution
+    // ========================================================================
+    // Test Case Setup: Well-conditioned matrices with known solutions
+    // ========================================================================
     // For size 2: A = [4, 1; 2, 3], b = [5; 11], solution: x = [0.4; 3.4]
     // For size 3: A = [2, 1, 0; 1, 2, 1; 0, 1, 2], b = [3; 4; 3], solution: x = [1; 1; 1]
     // For size 4: A = [4, 1, 0, 0; 1, 4, 1, 0; 0, 1, 4, 1; 0, 0, 1, 4], b = [5; 6; 6; 5], solution: x = [1; 1; 1; 1]
+    // For size 5, 6: Tridiagonal matrices with diagonal dominance
     
     if (size == 2)
     {
@@ -102,10 +137,16 @@ bool testLeftDivide(UINT32 size, const char* testName)
         }
     }
 
-    // Create submatrix view
+    // ========================================================================
+    // Solve the linear system Ax = b
+    // ========================================================================
+    
+    // Create a submatrix view for verification (to compute residual)
     SubMatPtrCls<MAX_N, MAX_N, REAL64> A_sub = A(0, 0, size, size);
 
     // Copy submatrix to temporary for LeftDivide
+    // Note: In production code, you could use the submatrix view directly
+    // if LeftDivide supported SubMatPtrCls (currently requires MatrixCls)
     MatrixCls<MAX_N, MAX_N, REAL64> A_temp;
     A_temp.setSubMatrixSize(size, size);
     for (UINT32 i = 0; i < size; i++)
@@ -117,7 +158,10 @@ bool testLeftDivide(UINT32 size, const char* testName)
     }
 
     // Create vectors for the sub-problem (copy from full vectors)
+    // Set the runtime length to match the problem size
     VectorCls<MAX_N, REAL64> b_sub, x_sub;
+    b_sub.setLength(size);
+    x_sub.setLength(size);
     for (UINT32 i = 0; i < size; i++)
     {
         b_sub(i) = b(i);
@@ -125,6 +169,7 @@ bool testLeftDivide(UINT32 size, const char* testName)
     }
 
     // Solve using LeftDivide (instance method)
+    // This automatically selects the best algorithm based on matrix properties
     bool success = A_temp.LeftDivide(b_sub, x_sub);
 
     // Copy result back to full vector
@@ -155,16 +200,22 @@ bool testLeftDivide(UINT32 size, const char* testName)
         std::cout << std::endl;
     }
 
+    // ========================================================================
     // Verify solution by computing residual: ||Ax - b||
+    // ========================================================================
+    // A good solution should have a very small residual (close to zero)
     REAL64 maxResidual = 0.0;
     for (UINT32 i = 0; i < size; i++)
     {
+        // Compute Ax for row i
         REAL64 residual = 0.0;
         for (UINT32 j = 0; j < size; j++)
         {
-            residual += A_sub(i, j) * x(j);
+            residual += A_sub(i, j) * x_sub(j);  // Use x_sub, not x
         }
-        residual -= b(i);
+        // Compute (Ax - b) for row i
+        residual -= b_sub(i);
+        // Track the maximum absolute residual
         REAL64 absResidual = std::abs(residual);
         if (absResidual > maxResidual)
             maxResidual = absResidual;
@@ -172,7 +223,8 @@ bool testLeftDivide(UINT32 size, const char* testName)
     
     std::cout << "  Max residual ||Ax - b||: " << maxResidual << std::endl;
     
-    // Consider test passed if residual is small
+    // Consider test passed if residual is very small (machine precision)
+    // This indicates the solution is numerically accurate
     bool passed = (maxResidual < 1e-10);
     if (passed)
         std::cout << "  ✓ PASSED" << std::endl;
@@ -182,28 +234,44 @@ bool testLeftDivide(UINT32 size, const char* testName)
     return passed;
 }
 
+/**
+ * @brief Main function - runs all LeftDivide tests
+ * @return 0 if all tests pass, 1 otherwise
+ * 
+ * This function runs a series of tests for the LeftDivide method
+ * with different matrix sizes (2x2 through 6x6). Each test:
+ * - Creates a test matrix and vector
+ * - Solves the linear system
+ * - Verifies the solution accuracy
+ */
 int main()
 {
     std::cout << "=== Testing LeftDivide Function ===" << std::endl;
+    std::cout << "This test suite verifies the LeftDivide method (solving Ax = b)" << std::endl;
+    std::cout << "for various matrix sizes and types." << std::endl << std::endl;
     
     bool allPassed = true;
     
-    // Test different sizes
-    allPassed &= testLeftDivide(2, "Test 1");
-    allPassed &= testLeftDivide(3, "Test 2");
-    allPassed &= testLeftDivide(4, "Test 3");
-    allPassed &= testLeftDivide(5, "Test 4");
-    allPassed &= testLeftDivide(6, "Test 5");
+    // Test different matrix sizes
+    // Each test uses a well-conditioned matrix with known properties
+    allPassed &= testLeftDivide(2, "Test 1: 2x2 matrix");
+    allPassed &= testLeftDivide(3, "Test 2: 3x3 tridiagonal matrix");
+    allPassed &= testLeftDivide(4, "Test 3: 4x4 tridiagonal matrix");
+    allPassed &= testLeftDivide(5, "Test 4: 5x5 tridiagonal matrix");
+    allPassed &= testLeftDivide(6, "Test 5: 6x6 tridiagonal matrix");
     
+    // Print summary
     std::cout << "\n=== Summary ===" << std::endl;
     if (allPassed)
     {
-        std::cout << "All tests PASSED!" << std::endl;
+        std::cout << "All tests PASSED! ✓" << std::endl;
+        std::cout << "The LeftDivide function is working correctly." << std::endl;
         return 0;
     }
     else
     {
-        std::cout << "Some tests FAILED!" << std::endl;
+        std::cout << "Some tests FAILED! ✗" << std::endl;
+        std::cout << "Please review the output above for details." << std::endl;
         return 1;
     }
 }

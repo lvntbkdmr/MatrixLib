@@ -1,27 +1,18 @@
-# Build directories
-build/
-_build/
-cmake-build-*/
+# Doxygen generated documentation
+docs/doxygen_xml/
+docs/html/
+docs/sphinx/_build/
 
-# Compiled files
+# Python virtual environment
+venv/
+.env
+
+# Build artifacts
+build/
 *.o
-*.obj
-*.exe
-*.out
 *.a
-*.lib
 *.so
 *.dylib
-*.dll
-
-# CMake files
-CMakeCache.txt
-CMakeFiles/
-cmake_install.cmake
-install_manifest.txt
-compile_commands.json
-CTestTestfile.cmake
-_deps/
 
 # IDE files
 .vscode/
@@ -29,15 +20,13 @@ _deps/
 *.swp
 *.swo
 *~
+
+# OS files
 .DS_Store
+Thumbs.db
 
-# Test results
-test_results.xml
-*.gcov
-*.gcda
-*.gcno
-
-# Documentation
-docs/html/
-docs/latex/
-
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
