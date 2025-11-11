@@ -5,6 +5,9 @@ project(MatrixLib VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Generate compile_commands.json for IDE support
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Include directories for the library
 include_directories(include)
 

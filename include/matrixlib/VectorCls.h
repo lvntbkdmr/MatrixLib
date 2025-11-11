@@ -24,9 +24,9 @@
 #ifndef VECTOR_CLS_H
 #define VECTOR_CLS_H
 
-#include "matrixlib/CommonTypes.h"
-#include "matrixlib/SubMatPtrCls.h"
-#include "matrixlib/MatrixCls.h"
+#include "CommonTypes.h"
+#include "SubMatPtrCls.h"
+#include "MatrixCls.h"
 
 /**
  * @class VectorCls

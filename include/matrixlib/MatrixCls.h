@@ -28,12 +28,11 @@
 #ifndef MATRIX_CLS_H
 #define MATRIX_CLS_H
 
-#include "matrixlib/CommonTypes.h"
-#include "matrixlib/SubMatPtrCls.h"
-#include "matrixlib/VectorCls.h"
+#include "CommonTypes.h"
+#include "SubMatPtrCls.h"
+#include "VectorCls.h"
 #include <cstring>
 #include <cstdlib>
-#include <type_traits>
 #include <cmath>
 
 /**

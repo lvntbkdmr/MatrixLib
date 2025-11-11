@@ -30,7 +30,7 @@
 #ifndef SUB_MAT_PTR_CLS_H
 #define SUB_MAT_PTR_CLS_H
 
-#include "matrixlib/CommonTypes.h"
+#include "CommonTypes.h"
 #include <cstring>
 
 /**
