@@ -1,19 +1,19 @@
 /**
  * @file VectorCls.h
  * @brief Vector class with compile-time size and runtime subvector support
- * 
+ *
  * This header defines a vector class that supports:
  * - Compile-time fixed maximum size (for stack allocation, avionics-safe)
  * - Runtime variable length (SubLength <= Length)
  * - Subvector views via SubMatPtrCls
  * - Matrix operations (bidiagonal difference matrix construction)
- * 
+ *
  * @tparam Length Maximum vector length (compile-time constant)
  * @tparam ElementType Type of vector elements (e.g., REAL64, REAL32)
- * 
+ *
  * @note This class is designed for avionics software where dynamic memory
  * allocation is prohibited. All memory is stack-allocated.
- * 
+ *
  * @example
  * VectorCls<6, REAL64> vec;        // Create vector with max size 6
  * vec.setLength(3);                 // Use only first 3 elements at runtime
@@ -25,37 +25,36 @@
 #define VECTOR_CLS_H
 
 #include "CommonTypes.h"
-#include "SubMatPtrCls.h"
-#include "MatrixCls.h"
+#include "MatrixPkg.h"
 
 /**
  * @class VectorCls
  * @brief Fixed-size vector with runtime variable length support
- * 
+ *
  * The vector has a compile-time maximum size (Length) but can use a smaller
  * number of elements at runtime (SubLength). This allows for efficient
  * stack allocation while supporting variable-sized operations.
  */
-template <UINT32 Length, class ElementType>
+template <UINT32 Length, class ElementType = REAL64>
 class VectorCls
 {
 public:
     /**
      * @brief Default constructor - initializes vector to zeros
-     * 
+     *
      * Creates a vector with all elements set to zero and SubLength = Length.
      */
     VectorCls();
-    
+
     /**
      * @brief Constructor with initial value
      * @param value Value to initialize all elements to
-     * 
+     *
      * Creates a vector with all elements set to the specified value
      * and SubLength = Length.
      */
     VectorCls(const ElementType& value);
-    
+
     /**
      * @brief Destructor
      */
@@ -66,36 +65,36 @@ public:
      * @param start Starting index of the subvector
      * @param length Number of elements in the subvector
      * @return SubMatPtrCls view of the subvector (as a column vector)
-     * 
+     *
      * Returns a non-owning view of a portion of this vector.
      * The view points to the original vector's elements, so modifications
      * through the view affect the original vector.
-     * 
+     *
      * @note If start + length exceeds SubLength or length > Length,
      * returns an empty view (SubRowNum = 0, SubColNum = 0).
-     * 
+     *
      * @example
      * VectorCls<6, REAL64> vec;
      * vec.setLength(5);
      * auto sub = vec(1, 3);  // Get view of elements 1, 2, 3
      */
     SubMatPtrCls<Length, 1, ElementType> operator()(UINT32 start, UINT32 length);
-    
+
     /**
      * @brief Access element by index (non-const)
      * @param index Element index (0-based)
      * @return Reference to the element at the specified index
-     * 
+     *
      * @note If index >= SubLength, returns reference to first element
      * as a fallback. Consider using bounds checking in production code.
      */
     ElementType& operator()(UINT32 index);
-    
+
     /**
      * @brief Access element by index (const)
      * @param index Element index (0-based)
      * @return Value of the element at the specified index
-     * 
+     *
      * @note If index >= SubLength, returns zero as a fallback.
      */
     ElementType operator()(UINT32 index) const;
@@ -103,25 +102,25 @@ public:
     /**
      * @brief Set the runtime length of the vector
      * @param length New runtime length
-     * 
+     *
      * Sets SubLength to the specified value, but caps it at Length
      * (the compile-time maximum). This allows the vector to use
      * fewer elements than its maximum capacity at runtime.
-     * 
+     *
      * @note If length > Length, SubLength is set to Length.
-     * 
+     *
      * @example
      * VectorCls<6, REAL64> vec;  // Max size 6
      * vec.setLength(3);          // Use only 3 elements
      */
     void setLength(UINT32 length);
-    
+
     /**
      * @brief Get the current runtime length
      * @return Current SubLength (number of active elements)
      */
     UINT32 getLength() const { return SubLength; }
-    
+
     void BidiagonalDifference(MatrixCls<Length, Length, ElementType>& result) const;
 
     UINT32 SubLength;           ///< Runtime length (number of active elements, <= Length)
@@ -166,7 +165,7 @@ template <UINT32 Length, class ElementType>
 SubMatPtrCls<Length, 1, ElementType> VectorCls<Length, ElementType>::operator()(UINT32 start, UINT32 length)
 {
     SubMatPtrCls<Length, 1, ElementType> subVecPtr;
-    
+
     // Bounds checking: ensure the subvector is within valid range
     if (start + length > SubLength || length > Length)
     {
@@ -175,18 +174,18 @@ SubMatPtrCls<Length, 1, ElementType> VectorCls<Length, ElementType>::operator()(
         subVecPtr.SubColNum = 0;
         return subVecPtr;
     }
-    
+
     // Set up pointers to the subvector elements
     // The subvector is treated as a column vector (1 column)
     for(UINT32 i = 0; i < length; i++)
     {
         subVecPtr.ElementsPtr[i][0] = &(Elements[start + i]);
     }
-    
+
     // Set the dimensions of the subvector view
     subVecPtr.SubRowNum = length;
     subVecPtr.SubColNum = 1;
-    
+
     return subVecPtr;
 }
 
@@ -197,13 +196,15 @@ SubMatPtrCls<Length, 1, ElementType> VectorCls<Length, ElementType>::operator()(
 template <UINT32 Length, class ElementType>
 ElementType& VectorCls<Length, ElementType>::operator()(UINT32 index)
 {
-    // Bounds check: ensure index is within runtime size (SubLength)
-    if (index >= SubLength)
-    {
-        // Return first element as fallback
-        // Note: In production code, consider throwing an exception or using assert
-        return Elements[0];
+    #ifdef DEBUG
+    assert(index < SubLength && "Vector index out of bounds");
+    #elif defined(AVIONICS_SAFE)
+    if (index >= SubLength) {
+        // Log error or set error flag instead of silent fallback
+        // For now, clamp to last valid element
+        index = SubLength > 0 ? SubLength - 1 : 0;
     }
+    #endif
     return Elements[index];
 }
 
@@ -246,14 +247,14 @@ void VectorCls<Length, ElementType>::setLength(UINT32 length)
 /** \fn template <UINT32 Length, class ElementType> void VectorCls<Length, ElementType>::BidiagonalDifference(MatrixCls<Length, Length, ElementType>& result) const
  *  \brief Construct a bidiagonal difference matrix from this vector
  *  \param result Output matrix (will be resized to (SubLength-1) x SubLength)
- * 
+ *
  *  Constructs a matrix where:
  *  - Main diagonal (i, i) contains Elements[i] for i = 0 to SubLength-2
  *  - First superdiagonal (i, i+1) contains -Elements[i+1] for i = 0 to SubLength-2
  *  - All other elements are zero
- * 
+ *
  *  The resulting matrix has dimensions (SubLength-1) x SubLength.
- * 
+ *
  *  \example
  *  VectorCls<4, REAL64> vec;
  *  vec.setLength(3);
@@ -269,17 +270,17 @@ void VectorCls<Length, ElementType>::BidiagonalDifference(MatrixCls<Length, Leng
     // Set matrix size: (SubLength - 1) rows x SubLength columns
     // This creates a matrix with one fewer row than the vector length
     result.setSubMatrixSize(SubLength - 1, SubLength);
-    
+
     // Initialize entire matrix to zero
     result.Zeros();
-    
+
     // Fill main diagonal with vector elements (rows 0 to SubLength-2)
     // Diagonal element at (i, i) gets Elements[i]
     for (UINT32 i = 0; i < SubLength - 1; i++)
     {
         result(i, i) = Elements[i];
     }
-    
+
     // Fill first superdiagonal with negative vector elements
     // Element at (i, i+1) gets -Elements[i+1]
     // This creates the "difference" part of the bidiagonal difference matrix

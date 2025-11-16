@@ -39,3 +39,8 @@ install(DIRECTORY include/ DESTINATION include
     FILES_MATCHING PATTERN "*.h"
 )
 
+# Enable testing
+enable_testing()
+
+# Add tests subdirectory
+add_subdirectory(tests)
